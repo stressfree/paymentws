@@ -80,13 +80,13 @@
     </wsdl:binding>
     <wsdl:service name="PaymentService">
         <wsdl:port name="PaymentServiceHttpSoap11Endpoint" binding="axis2:PaymentServiceSoap11Binding">
-            <soap:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpSoap11Endpoint/"/>
+            <soap:address location="http://localhost:8080/paymentws/services/PaymentService.PaymentServiceHttpSoap11Endpoint/"/>
         </wsdl:port>
         <wsdl:port name="PaymentServiceHttpSoap12Endpoint" binding="axis2:PaymentServiceSoap12Binding">
-            <soap12:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpSoap12Endpoint/"/>
+            <soap12:address location="http://localhost:8080/paymentws/services/PaymentService.PaymentServiceHttpSoap12Endpoint/"/>
         </wsdl:port>
         <wsdl:port name="PaymentServiceHttpEndpoint" binding="axis2:PaymentServiceHttpBinding">
-            <http:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpEndpoint/"/>
+            <http:address location="http://localhost:8080/paymentws/services/PaymentService.PaymentServiceHttpEndpoint/"/>
         </wsdl:port>
     </wsdl:service>
 </wsdl:definitions>

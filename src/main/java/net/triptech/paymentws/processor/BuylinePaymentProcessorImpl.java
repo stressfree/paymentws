@@ -124,105 +124,107 @@ public class BuylinePaymentProcessorImpl implements PaymentProcessor {
         Webpay webpay = null;
         String responseCode = null;
 
-        try {
-            webpay = new Webpay(this.clientId , this.certificatePath,
-                    this.certificatePassphrase);
-        } catch (Exception e) {
-            logger.error("Error instantiating the Webpay object", e);
-            throw new PaymentException("Error instantiating the Webpay object: "
-                    + e.getMessage());
-        }
+        if (!this.debugMode) {
 
-        // Set the servers and port
-        String[] serverArray = new String[this.servers.size()];
-        for (int i = 0; i < this.servers.size(); i++) {
-            serverArray[i] = this.servers.get(i);
-        }
-        webpay.setServers(serverArray);
-        webpay.setPort(this.port);
+            try {
+                webpay = new Webpay(this.clientId , this.certificatePath,
+                            this.certificatePassphrase);
+            } catch (Exception e) {
+                logger.error("Error instantiating the Webpay object", e);
+                throw new PaymentException("Error instantiating the Webpay object: "
+                        + e.getMessage());
+            }
 
-        String value = String.format("%.2f", details.getPurchaseTotalValue());
-        logger.info("Credit card transaction value: " + value);
+            // Set the servers and port
+            String[] serverArray = new String[this.servers.size()];
+            for (int i = 0; i < this.servers.size(); i++) {
+                serverArray[i] = this.servers.get(i);
+            }
+            webpay.setServers(serverArray);
+            webpay.setPort(this.port);
 
-        // Populate the Webpay object with required data
-        webpay.put("TRANSACTIONTYPE", "PURCHASE");
-        webpay.put("INTERFACE", "CREDITCARD");
-        webpay.put("CARDEXPIRYDATE", details.getCardExpiryDate());
-        webpay.put("CARDDATA", details.getCardNumber());
-        webpay.put("TOTALAMOUNT", value);
+            String value = String.format("%.2f", details.getPurchaseTotalValue());
+            logger.info("Credit card transaction value: " + value);
 
-        // Optional data
-        if (StringUtils.isNotBlank(details.getCardHolderName())) {
-            webpay.put("MERCHANT_CARDHOLDERNAME", details.getCardHolderName());
-        }
-        if (details.getCardSecurityCode() > 0) {
-            webpay.put("CVC2", String.valueOf(details.getCardSecurityCode()));
-            webpay.put("CCI", "1");
-        }
-        if (details.getPurchaseTaxValue() > 0) {
-            String taxValue = String.format("%.2f", details.getPurchaseTaxValue());
-            logger.info("Credit card transaction tax value: " + taxValue);
-            webpay.put("TAXAMOUNT", taxValue);
-        }
-        if (StringUtils.isNotBlank(details.getClientReferenceNumber())) {
-            webpay.put("CLIENTREF", details.getClientReferenceNumber());
-        }
-        if (StringUtils.isNotBlank(details.getPurchaseDescription())) {
-            webpay.put("MERCHANT_DESCRIPTION", details.getPurchaseDescription());
-        }
-        if (StringUtils.isNotBlank(details.getPurchaseComment())) {
-            webpay.put("COMMENT", details.getPurchaseComment());
-        }
+            // Populate the Webpay object with required data
+            webpay.put("TRANSACTIONTYPE", "PURCHASE");
+            webpay.put("INTERFACE", "CREDITCARD");
+            webpay.put("CARDEXPIRYDATE", details.getCardExpiryDate());
+            webpay.put("CARDDATA", details.getCardNumber());
+            webpay.put("TOTALAMOUNT", value);
 
-        // Execute the transaction.
-        try {
-            if (!this.debugMode) {
+            // Optional data
+            if (StringUtils.isNotBlank(details.getCardHolderName())) {
+                webpay.put("MERCHANT_CARDHOLDERNAME", details.getCardHolderName());
+            }
+            if (details.getCardSecurityCode() > 0) {
+                webpay.put("CVC2", String.valueOf(details.getCardSecurityCode()));
+                webpay.put("CCI", "1");
+            }
+            if (details.getPurchaseTaxValue() > 0) {
+                String taxValue = String.format("%.2f", details.getPurchaseTaxValue());
+                logger.info("Credit card transaction tax value: " + taxValue);
+                webpay.put("TAXAMOUNT", taxValue);
+            }
+            if (StringUtils.isNotBlank(details.getClientReferenceNumber())) {
+                webpay.put("CLIENTREF", details.getClientReferenceNumber());
+            }
+            if (StringUtils.isNotBlank(details.getPurchaseDescription())) {
+                webpay.put("MERCHANT_DESCRIPTION", details.getPurchaseDescription());
+            }
+            if (StringUtils.isNotBlank(details.getPurchaseComment())) {
+                webpay.put("COMMENT", details.getPurchaseComment());
+            }
+
+            // Execute the transaction.
+            try {
                 webpay.execute();
-            } else {
-                responseCode = "DEBUG";
+
+            } catch (IOException ioe) {
+                // The transaction has failed at a protocol level.
+                logger.error("Error executing transaction.", ioe);
+                // If TXNREFERENCE has been set, then the transaction was initialised
+                // before failing. Let the transaction continue to see if it brings a
+                // result back.
+                if (webpay.get("TXNREFERENCE") != null) {
+                    responseCode = "IP";
+                }
             }
-        } catch (IOException ioe) {
-            // The transaction has failed at a protocol level.
-            logger.error("Error executing transaction.", ioe);
-            // If TXNREFERENCE has been set, then the transaction was initialised before
-            // failing. Let the transaction continue to see if it brings a result back.
-            if (webpay.get("TXNREFERENCE") != null) {
-                responseCode = "IP";
+
+            // Check to see if the transaction is still "IN PROGRESS".
+            // If it is, poll server with status requests until either the response
+            // code changes or to a maximum of three status requests.
+            if (responseCode == null) {
+                responseCode = webpay.get("RESPONSECODE");
+            }
+            for (int checkCount = 0; checkCount < ATTEMPTS; checkCount++) {
+                if (StringUtils.equals("IP", responseCode)) {
+                    // The transaction is still in progress. Send a status request.
+                    webpay.put("TRANSACTIONTYPE", "STATUS");
+                    try {
+                        Thread.sleep(WAIT);
+                        // Half-second polling delay
+                        webpay.execute();
+                    } catch (IOException ioe) {
+                        // The transaction has failed at a protocol level.
+                        logger.error("Error executing transaction.", ioe);
+                        throw new PaymentException("Error executing transaction: "
+                                + ioe.getMessage());
+                    } catch (InterruptedException ie) {
+                        // The thread was interrupted during processing.
+                        logger.error("Error executing transaction (interrupted).", ie);
+                        throw new PaymentException("Error executing transaction: "
+                                + ie.getMessage());
+                    }
+                    responseCode = webpay.get("RESPONSECODE");
+                } else {
+                    // Break out of for loop, we don't need poll anymore as the
+                    // transaction is no longer IN PROGRESS
+                    checkCount = ATTEMPTS;
+                }
             }
         }
 
-        // Check to see if the transaction is still "IN PROGRESS".
-        // If it is, poll server with status requests until either the response
-        // code changes or to a maximum of three status requests.
-        if (responseCode == null) {
-            responseCode = webpay.get("RESPONSECODE");
-        }
-        for (int statusCheckCount = 0; statusCheckCount < ATTEMPTS; statusCheckCount++) {
-            if (StringUtils.equals("IP", responseCode)) {
-                // The transaction is still in progress. Send a status request.
-                webpay.put("TRANSACTIONTYPE", "STATUS");
-                try {
-                    Thread.sleep(WAIT);
-                    // Half-second polling delay
-                    webpay.execute();
-                } catch (IOException ioe) {
-                    // The transaction has failed at a protocol level.
-                    logger.error("Error executing transaction.", ioe);
-                    throw new PaymentException("Error executing transaction: "
-                            + ioe.getMessage());
-                } catch (InterruptedException ie) {
-                    // The thread was interrupted during processing.
-                    logger.error("Error executing transaction (thread interrupted).", ie);
-                    throw new PaymentException("Error executing transaction: "
-                            + ie.getMessage());
-                }
-                responseCode = webpay.get("RESPONSECODE");
-            } else {
-                // Break out of for loop, we don't need poll anymore as the
-                // transaction is no longer IN PROGRESS
-                statusCheckCount = ATTEMPTS;
-            }
-        }
         if (StringUtils.equals("IP", responseCode)) {
             // The transaction was still in progress after three iterations through
             // the polling loop. Kill the session.
@@ -231,7 +233,7 @@ public class BuylinePaymentProcessorImpl implements PaymentProcessor {
                     + "timely fashion. Try sending transaction again.");
         } else {
             // The transaction has completed. Populate the processedPayment bean.
-            if (debugMode) {
+            if (this.debugMode) {
                 processedPayment.setSuccess(true);
                 processedPayment.setReference("TEST");
             } else {

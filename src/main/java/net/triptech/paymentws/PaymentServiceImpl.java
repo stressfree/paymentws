@@ -72,9 +72,9 @@ public class PaymentServiceImpl {
             final double totalValue, final double taxValue, final String clientReference,
             final String description, final String purchaseComment) {
 
-        String result = "ERROR";
-
         boolean allowed = false;
+
+        ProcessedPayment payment = new ProcessedPayment();
 
         if (this.accessList != null) {
             for (String keyVal : this.accessList.keySet()) {
@@ -91,7 +91,8 @@ public class PaymentServiceImpl {
         }
 
         if (!allowed) {
-            result = "ERROR - Access denied";
+            payment.setSuccess(false);
+            payment.setMessage("Access denied");
         } else {
             PaymentDetails details = new PaymentDetails();
 
@@ -109,18 +110,21 @@ public class PaymentServiceImpl {
             details.setPurchaseComment(purchaseComment);
 
             try {
-                ProcessedPayment payment = this.paymentProcessor.process(details);
-
-                if (payment.getSuccess()) {
-                    result = "SUCCESS - " + payment.getReference();
-                } else {
-                    result = "ERROR - " + payment.getReference()
-                            + " - " + payment.getMessage();
-                }
+                payment = this.paymentProcessor.process(details);
             } catch (PaymentException pe) {
                 logger.error("Error processing payment: " + pe.getMessage());
+                payment.setSuccess(false);
+                payment.setMessage("Error processing payment");
+                payment.setLogMessage(pe.getMessage());
             }
         }
-        return result;
+
+        String result = "error";
+        if (payment.getSuccess()) {
+            result = "success";
+        }
+
+        return "'" + result + "','" + payment.getReference() + "','"
+                + payment.getMessage() + "','" + payment.getLogMessage() + "'";
     }
 }

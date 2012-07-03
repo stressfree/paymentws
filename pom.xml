@@ -4,7 +4,7 @@
   <groupId>net.triptech</groupId>
   <artifactId>paymentws</artifactId>
   <packaging>war</packaging>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
   <name>Payment Web Service</name>
   <url>http://maven.apache.org</url>
   <properties>
@@ -34,6 +34,27 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-beans</artifactId>
+        <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-context</artifactId>
+        <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-web</artifactId>
+        <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${spring.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <!-- Webpay library -->
@@ -105,12 +126,6 @@
       <version>1.0M8</version>
       <scope>compile</scope>
     </dependency>
-    <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>2.4</version>
-      <scope>provided</scope>
-    </dependency>
 
     <!-- these libraries are required by Tomcat (but not JBoss) -->
     <dependency>
@@ -160,6 +175,16 @@
         </configuration>
       </plugin>
     </plugins>
+    <testResources>
+      <testResource>
+        <directory>src/test/config</directory>
+        <includes>
+          <include>log4j.properties</include>
+          <include>spring-context.xml</include>
+        </includes>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
   </build>
 
   <repositories>
