@@ -10,11 +10,11 @@
  ******************************************************************************/
 package net.triptech.paymentws;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import net.triptech.paymentws.processor.PaymentDetails;
@@ -37,7 +37,7 @@ public class PaymentServiceImpl {
     private PaymentProcessor paymentProcessor;
 
     /** The access list. */
-    private Map<String, String> accessList = new HashMap<String, String>();
+    private Map<String, String> accessList;
 
 
     /**
@@ -74,34 +74,53 @@ public class PaymentServiceImpl {
 
         String result = "ERROR";
 
-        PaymentDetails details = new PaymentDetails();
+        boolean allowed = false;
 
-        details.setCardNumber(cardNumber);
-        details.setCardHolderName(cardHolder);
-        details.setCardExpiryMonth(expiryMonth);
-        details.setCardExpiryYear(expiryYear);
-        details.setCardSecurityCode(securityCode);
+        if (this.accessList != null) {
+            for (String keyVal : this.accessList.keySet()) {
+                String secretVal = this.accessList.get(keyVal);
 
-        details.setPurchaseTotalValue(totalValue);
-        details.setPurchaseTaxValue(taxValue);
-
-        details.setClientReferenceNumber(clientReference);
-        details.setPurchaseDescription(description);
-        details.setPurchaseComment(purchaseComment);
-
-        try {
-            ProcessedPayment payment = this.paymentProcessor.process(details);
-
-            if (payment.getSuccess()) {
-                result = "SUCCESS - " + payment.getReference();
-            } else {
-                result = "ERROR - " + payment.getReference()
-                        + " - " + payment.getMessage();
+                if (StringUtils.equals(keyVal,  accessId)
+                        && StringUtils.equals(secretVal,  secret)) {
+                    allowed = true;
+                }
             }
-        } catch (PaymentException pe) {
-            logger.error("Error processing payment: " + pe.getMessage());
+        } else {
+            // No keys defined, set to allow
+            allowed = true;
         }
 
+        if (!allowed) {
+            result = "ERROR - Access denied";
+        } else {
+            PaymentDetails details = new PaymentDetails();
+
+            details.setCardNumber(cardNumber);
+            details.setCardHolderName(cardHolder);
+            details.setCardExpiryMonth(expiryMonth);
+            details.setCardExpiryYear(expiryYear);
+            details.setCardSecurityCode(securityCode);
+
+            details.setPurchaseTotalValue(totalValue);
+            details.setPurchaseTaxValue(taxValue);
+
+            details.setClientReferenceNumber(clientReference);
+            details.setPurchaseDescription(description);
+            details.setPurchaseComment(purchaseComment);
+
+            try {
+                ProcessedPayment payment = this.paymentProcessor.process(details);
+
+                if (payment.getSuccess()) {
+                    result = "SUCCESS - " + payment.getReference();
+                } else {
+                    result = "ERROR - " + payment.getReference()
+                            + " - " + payment.getMessage();
+                }
+            } catch (PaymentException pe) {
+                logger.error("Error processing payment: " + pe.getMessage());
+            }
+        }
         return result;
     }
 }
