@@ -1,0 +1,25 @@
+<service name="PaymentService" targetNamespace="http://www.triptech.net/paymentws/">
+    <description>Payment Web Service</description>
+    <schema schemaNamespace="http://www.triptech.net/paymentws/xsd/"/>
+    <parameter name="ServiceObjectSupplier" locked="false">
+        org.apache.axis2.extensions.spring.receivers.SpringServletContextObjectSupplier
+    </parameter>
+    <parameter name="SpringBeanName" locked="false">paymentService</parameter>
+    <!-- Comment out these lines to disable automatic WSDL generation - handy when behind a proxy -->
+    <parameter locked="false" name="useOriginalwsdl">false</parameter>
+    <parameter locked="false" name="modifyUserWSDLPortAddress">true</parameter>
+    <messageReceivers>
+        <messageReceiver
+            mep="http://www.w3.org/2004/08/wsdl/in-only"
+    class="org.apache.axis2.rpc.receivers.RPCInOnlyMessageReceiver"/>
+        <messageReceiver
+            mep="http://www.w3.org/2004/08/wsdl/in-out"
+    class="org.apache.axis2.rpc.receivers.RPCMessageReceiver"/>
+    </messageReceivers>
+    <parameter name="ServiceClass">
+        net.triptech.paymentws.PaymentServiceImpl
+    </parameter>
+    <excludeOperations>
+        <operation>setAccessList</operation>
+    </excludeOperations>
+</service>

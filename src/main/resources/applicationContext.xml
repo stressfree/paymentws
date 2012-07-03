@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+    <context:annotation-config/>
+
+    <bean id="propertyConfigurer"
+        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+            <value>classpath:paymentws.properties</value>
+        </property>
+    </bean>
+
+    <!-- Axis2 Web Services -->
+    <bean id="paymentService" class="net.triptech.paymentws.PaymentServiceImpl">
+        <property name="accessList">
+            <map>
+                <entry key="${service.accessid}" value="${service.secret}" />
+            </map>
+        </property>
+    </bean>
+
+    <!--  The payment processor configuration -->
+    <bean id="paymentProcessor" class="net.triptech.paymentws.processor.BuylinePaymentProcessorImpl">
+      <property name="servers">
+        <list>
+          <value>${buyline.server}</value>
+        </list>
+      </property>
+      <property name="serverPort" value="${buyline.port}" />
+      <property name="clientId" value="${buyline.clientid}" />
+      <property name="certificatePath" value="${buyline.certificate}" />
+      <property name="certificatePassphrase" value="${buyline.passphrase}" />
+      <property name="debugMode" value="${buyline.debugmode}" />
+    </bean>
+
+</beans>

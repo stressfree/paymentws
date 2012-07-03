@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:axis2="http://www.triptech.net/paymentws/" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://www.triptech.net/paymentws/xsd/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://www.triptech.net/paymentws/">
+    <wsdl:documentation>PaymentService</wsdl:documentation>
+    <wsdl:types>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://www.triptech.net/paymentws/xsd/">
+            <xs:element name="process">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="accessId" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="secret" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="cardNumber" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="cardHolder" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="expiryMonth" type="xs:int"/>
+                        <xs:element minOccurs="0" name="expiryYear" type="xs:int"/>
+                        <xs:element minOccurs="0" name="securityCode" type="xs:int"/>
+                        <xs:element minOccurs="0" name="totalValue" type="xs:double"/>
+                        <xs:element minOccurs="0" name="taxValue" type="xs:double"/>
+                        <xs:element minOccurs="0" name="clientReference" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="description" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="purchaseComment" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="processResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="processRequest">
+        <wsdl:part name="parameters" element="ns:process"/>
+    </wsdl:message>
+    <wsdl:message name="processResponse">
+        <wsdl:part name="parameters" element="ns:processResponse"/>
+    </wsdl:message>
+    <wsdl:portType name="PaymentServicePortType">
+        <wsdl:operation name="process">
+            <wsdl:input message="axis2:processRequest" wsaw:Action="urn:process"/>
+            <wsdl:output message="axis2:processResponse" wsaw:Action="urn:processResponse"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="PaymentServiceSoap11Binding" type="axis2:PaymentServicePortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="process">
+            <soap:operation soapAction="urn:process" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="PaymentServiceSoap12Binding" type="axis2:PaymentServicePortType">
+        <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="process">
+            <soap12:operation soapAction="urn:process" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="PaymentServiceHttpBinding" type="axis2:PaymentServicePortType">
+        <http:binding verb="POST"/>
+        <wsdl:operation name="process">
+            <http:operation location="PaymentService/process"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="process"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="process"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="PaymentService">
+        <wsdl:port name="PaymentServiceHttpSoap11Endpoint" binding="axis2:PaymentServiceSoap11Binding">
+            <soap:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpSoap11Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="PaymentServiceHttpSoap12Endpoint" binding="axis2:PaymentServiceSoap12Binding">
+            <soap12:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpSoap12Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="PaymentServiceHttpEndpoint" binding="axis2:PaymentServiceHttpBinding">
+            <http:address location="http://localhost:8080/paymentws/PaymentService.PaymentServiceHttpEndpoint/"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>
